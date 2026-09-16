@@ -1,0 +1,92 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Track Get Order Id')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function findShipment(query) {
+  var sheetId = "1O-fYWeGnGFak635hFtUxni-0ii4DmFFhsluunxtFrbE";
+  var ss = SpreadsheetApp.openById(sheetId);
+  var sheets = ss.getSheets();
+  
+  var queries = Array.isArray(query) ? query : [query];
+  var results = [];
+  
+  queries.forEach(function(q) {
+    var trimmedQ = String(q).trim();
+    if (!trimmedQ) return;
+    
+    var found = false;
+    
+    for (var i = 0; i < sheets.length; i++) {
+      var sheet = sheets[i];
+      
+      try {
+        var sheetType = sheet.getType();
+        if (sheetType !== SpreadsheetApp.SheetType.GRID) {
+          continue;
+        }
+      } catch(e) {}
+      
+      var sheetName = sheet.getName();
+      var data;
+      try {
+        data = sheet.getDataRange().getValues();
+      } catch(err) {
+        continue;
+      }
+      
+      if (!data || data.length <= 1) continue;
+      
+      for (var r = 1; r < data.length; r++) {
+        var row = data[r];
+        var trackingVal = row[0] ? String(row[0]).trim() : "";
+        
+        if (trackingVal === trimmedQ) {
+          // Column Indices (0-based):
+          // Column A = 0 (Tracking ID)
+          // Column F = 5 (Price)
+          // Column H = 7 (Latest Status)
+          // Column I = 8 (Delivery Hub)
+          // Column Q = 16 (Bag ID)
+          // Column Y = 24 (Order ID)
+          
+          var price = (row[5] !== undefined && row[5] !== "") ? String(row[5]).trim() : "—";
+          var status = (row[7] !== undefined && row[7] !== "") ? String(row[7]).trim() : "—";
+          var hub = (row[8] !== undefined && row[8] !== "") ? String(row[8]).trim() : "—";
+          var bagQ = (row[16] !== undefined && row[16] !== "") ? String(row[16]).trim() : "—";
+          var orderId = (row[24] !== undefined && row[24] !== "") ? String(row[24]).trim() : "—";
+          
+          results.push({
+            success: true,
+            shipmentId: trimmedQ,
+            orderId: orderId,
+            price: price,
+            status: status,
+            hub: hub,
+            bagQ: bagQ,
+            sheetName: sheetName
+          });
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    
+    if (!found) {
+      results.push({
+        success: false,
+        shipmentId: q,
+        orderId: "—",
+        price: "—",
+        status: "—",
+        hub: "—",
+        bagQ: "—",
+        sheetName: ""
+      });
+    }
+  });
+  
+  return Array.isArray(query) ? results : results[0];
+}

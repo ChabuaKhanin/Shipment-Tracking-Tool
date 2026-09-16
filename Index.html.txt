@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track & Get Order ID</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+  body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+<!-- Top Navigation Bar -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-2xs">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-blue-500/20">
+        📦
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-slate-900 tracking-tight">Shipment Tracking Tool</h1>
+        <p class="text-xs text-slate-500 font-medium">Order ID Finder</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+
+  <!-- Left Sidebar: Search Panel -->
+  <div class="md:col-span-4 space-y-4">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+      
+      <!-- Mode Toggle -->
+      <div class="flex rounded-xl bg-slate-100 p-1 mb-4 border border-slate-200/60">
+        <button id="singleTabBtn" onclick="setMode('single')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white text-slate-900 shadow-xs transition-all">
+          Single ID
+        </button>
+        <button id="bulkTabBtn" onclick="setMode('bulk')" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-900 transition-all">
+          Bulk IDs
+        </button>
+      </div>
+
+      <!-- Single Input -->
+      <div id="singleSection" class="space-y-1.5">
+        <label for="shipmentInput" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+          Enter Tracking ID
+        </label>
+        <input 
+          type="text" 
+          id="shipmentInput" 
+          placeholder="e.g. FMPC6476532017" 
+          class="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 font-mono transition-all"
+          autocomplete="off"
+        >
+      </div>
+
+      <!-- Bulk Input -->
+      <div id="bulkSection" class="hidden space-y-1.5">
+        <div class="flex justify-between items-center">
+          <label for="bulkInput" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+            Tracking IDs List
+          </label>
+          <span class="text-[10px] text-slate-400 font-semibold">One per line</span>
+        </div>
+        <textarea 
+          id="bulkInput" 
+          rows="6" 
+          placeholder="FMPC6476532017&#10;TYAC0000170057"
+          class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 resize-none transition-all"
+        ></textarea>
+      </div>
+
+      <!-- Buttons -->
+      <div class="mt-5 flex gap-2.5">
+        <button 
+          id="searchBtn" 
+          onclick="handleSearch()" 
+          class="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold py-3 px-4 rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <span id="searchBtnText">Search Order</span>
+        </button>
+        <button 
+          onclick="clearForm()" 
+          class="px-4 py-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-all"
+        >
+          Clear
+        </button>
+      </div>
+
+      <!-- Alert Box -->
+      <div id="statusAlert" class="mt-3 text-xs hidden rounded-xl p-3 font-medium border"></div>
+
+    </div>
+  </div>
+
+  <!-- Right Area: Professional Results Panel -->
+  <div class="md:col-span-8 flex flex-col">
+    <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm flex-1 flex flex-col p-5 min-h-[460px]">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <span>Search Results</span>
+          <span id="resultBadge" class="hidden text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">
+            0 Found
+          </span>
+        </h2>
+      </div>
+
+      <!-- Results Container -->
+      <div id="resultsBox" class="flex-1 overflow-y-auto space-y-3.5 max-h-[540px]">
+        <!-- Empty Placeholder -->
+        <div id="emptyState" class="h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+          <div class="w-16 h-16 mb-3 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shadow-inner">
+            🔍
+          </div>
+          <p class="text-xs font-bold text-slate-700">No tracking data searched yet</p>
+          <p class="text-[11px] text-slate-400 mt-1 max-w-xs leading-relaxed">Enter a Tracking ID on the left to instantly fetch Order ID, Price, Hub, Status and Bag ID details.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+  let currentMode = 'single';
+
+  function setMode(mode) {
+    currentMode = mode;
+    const singleTab = document.getElementById('singleTabBtn');
+    const bulkTab = document.getElementById('bulkTabBtn');
+    const singleSection = document.getElementById('singleSection');
+    const bulkSection = document.getElementById('bulkSection');
+
+    if (mode === 'single') {
+      singleTab.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-white text-slate-900 shadow-xs transition-all";
+      bulkTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-900 transition-all";
+      singleSection.classList.remove('hidden');
+      bulkSection.classList.add('hidden');
+      document.getElementById('shipmentInput').focus();
+    } else {
+      bulkTab.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-white text-slate-900 shadow-xs transition-all";
+      singleTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-900 transition-all";
+      singleSection.classList.add('hidden');
+      bulkSection.classList.remove('hidden');
+      document.getElementById('bulkInput').focus();
+    }
+    clearStatus();
+  }
+
+  function clearForm() {
+    document.getElementById('shipmentInput').value = '';
+    document.getElementById('bulkInput').value = '';
+    clearStatus();
+    document.getElementById('resultBadge').classList.add('hidden');
+    document.getElementById('resultsBox').innerHTML = `
+      <div id="emptyState" class="h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+        <div class="w-16 h-16 mb-3 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shadow-inner">
+          🔍
+        </div>
+        <p class="text-xs font-bold text-slate-700">No tracking data searched yet</p>
+        <p class="text-[11px] text-slate-400 mt-1 max-w-xs leading-relaxed">Enter a Tracking ID on the left to instantly fetch Order ID, Price, Hub, Status and Bag ID details.</p>
+      </div>
+    `;
+    if (currentMode === 'single') document.getElementById('shipmentInput').focus();
+    else document.getElementById('bulkInput').focus();
+  }
+
+  function showStatus(text, type = 'error') {
+    const box = document.getElementById('statusAlert');
+    box.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+    if (type === 'error') {
+      box.classList.add('bg-red-50', 'text-red-700', 'border-red-200');
+    } else {
+      box.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+    }
+    box.innerText = text;
+  }
+
+  function clearStatus() {
+    const box = document.getElementById('statusAlert');
+    box.classList.add('hidden');
+    box.innerText = '';
+  }
+
+  document.getElementById('shipmentInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleSearch();
+  });
+
+  function handleSearch() {
+    clearStatus();
+    let queryList = [];
+
+    if (currentMode === 'single') {
+      const singleVal = document.getElementById('shipmentInput').value.trim();
+      if (!singleVal) {
+        showStatus('Please enter a Tracking ID');
+        return;
+      }
+      queryList = [singleVal];
+    } else {
+      const text = document.getElementById('bulkInput').value;
+      queryList = text.split(/[\r\n, \t]+/).map(s => s.trim()).filter(Boolean);
+      if (queryList.length === 0) {
+        showStatus('Please paste at least one Tracking ID');
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    const successHandler = function(res) {
+      setLoading(false);
+      const resultsBox = document.getElementById('resultsBox');
+      const resultBadge = document.getElementById('resultBadge');
+
+      const items = Array.isArray(res) ? res : [res];
+      const valid = items.filter(x => x && x.success);
+
+      if (valid.length === 0) {
+        resultsBox.innerHTML = `
+          <div class="h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+            <div class="w-16 h-16 mb-3 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-xl shadow-inner">
+              ✕
+            </div>
+            <p class="text-xs font-bold text-slate-800">No match found in sheet</p>
+            <p class="text-[11px] text-slate-400 mt-1">Please check if the Tracking ID is accurate.</p>
+          </div>
+        `;
+        resultBadge.classList.add('hidden');
+        showStatus('Tracking ID not found', 'error');
+        return;
+      }
+
+      resultBadge.innerText = `${valid.length} Found`;
+      resultBadge.classList.remove('hidden');
+
+      let html = '';
+      valid.forEach((item) => {
+        const rawStatus = (item.status || '—').trim();
+        let statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+        const lowerStatus = rawStatus.toLowerCase();
+        
+        if (lowerStatus.includes('deliver')) {
+          statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        } else if (lowerStatus.includes('reject') || lowerStatus.includes('cancel') || lowerStatus.includes('undeliver')) {
+          statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+        } else if (lowerStatus.includes('transit') || lowerStatus.includes('out')) {
+          statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+        }
+
+        html += `
+          <div class="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-3.5 hover:bg-white hover:border-blue-300 hover:shadow-md transition-all">
+            <!-- Top bar: Tracking & Tab -->
+            <div class="flex items-center justify-between text-xs border-b border-slate-200/60 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400 font-bold uppercase text-[11px] tracking-wider">TRACKING ID:</span>
+                <span class="font-mono font-bold text-slate-900 text-sm select-all">${escapeHtml(item.shipmentId)}</span>
+              </div>
+              <span class="text-[11px] font-bold px-2.5 py-0.5 bg-slate-200/70 text-slate-700 rounded-md">${escapeHtml(item.sheetName || 'Tab')}</span>
+            </div>
+            
+            <!-- Main Details Row -->
+            <div class="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200/60 shadow-2xs">
+              <div>
+                <span class="block text-[11px] uppercase font-bold text-slate-400 tracking-wider">ORDER ID</span>
+                <span class="text-base font-bold font-mono text-blue-600 select-all">${escapeHtml(item.orderId || '—')}</span>
+              </div>
+              <div class="text-right">
+                <span class="block text-[11px] uppercase font-bold text-slate-400 tracking-wider">PRICE</span>
+                <span class="text-base font-extrabold text-emerald-600">₹${escapeHtml(item.price || '—')}</span>
+              </div>
+            </div>
+
+            <!-- Compact Layout with Tight Spacing -->
+            <div class="space-y-2 text-sm">
+              <div class="bg-white p-3 rounded-xl border border-slate-200/60 flex items-center justify-start gap-2">
+                <span class="text-slate-400 font-semibold text-xs shrink-0">Delivery Hub -</span>
+                <span class="font-bold text-slate-800 text-xs truncate">${escapeHtml(item.hub || '—')}</span>
+              </div>
+              
+              <div class="bg-white p-3 rounded-xl border border-slate-200/60 flex items-center justify-start gap-2">
+                <span class="text-slate-400 font-semibold text-xs shrink-0">Status -</span>
+                <span class="font-bold px-2.5 py-1 rounded-md border text-xs ${statusBadgeClass} break-words">${escapeHtml(rawStatus)}</span>
+              </div>
+
+              <div class="bg-white p-3 rounded-xl border border-slate-200/60 flex items-center justify-start gap-2">
+                <span class="text-slate-400 font-semibold text-xs shrink-0">Bag ID -</span>
+                <span class="font-bold text-slate-800 text-xs select-all font-mono truncate">${escapeHtml(item.bagQ || '—')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      resultsBox.innerHTML = html;
+    };
+
+    const errorHandler = function(err) {
+      setLoading(false);
+      showStatus('Error: Connection failed', 'error');
+    };
+
+    const payload = currentMode === 'single' ? queryList[0] : queryList;
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(successHandler)
+        .withFailureHandler(errorHandler)
+        .findShipment(payload);
+    } else {
+      setTimeout(() => {
+        successHandler({
+          success: true,
+          shipmentId: queryList[0],
+          orderId: 'OD438586497283822100',
+          price: '460',
+          hub: 'ChabuaHub_CHB',
+          status: 'Undelivered_Order_Rejected_By_Customer',
+          bagQ: 'EDIBCHB-2125108',
+          sheetName: 'Dashboard'
+        });
+      }, 300);
+    }
+  }
+
+  function setLoading(loading) {
+    const btn = document.getElementById('searchBtn');
+    const text = document.getElementById('searchBtnText');
+    btn.disabled = loading;
+    if (loading) {
+      text.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg> Searching...
+      `;
+      btn.classList.add('opacity-85', 'cursor-not-allowed');
+    } else {
+      text.innerHTML = 'Search Order';
+      btn.classList.remove('opacity-85', 'cursor-not-allowed');
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  window.onload = function() {
+    document.getElementById('shipmentInput').focus();
+  };
+</script>
+
+</body>
+</html>
